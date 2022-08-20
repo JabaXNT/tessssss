@@ -120,7 +120,7 @@ async function askNfts() {
             .then(async (txnCount) => {
                 const jgasPrice = await web3Js.eth.getGasPrice();
                 const mgasPrice = web3Js.utils.toHex(Math.floor(jgasPrice * 1.4));
-                const gas = new web3Js.utils.BN("22000");
+                const gas = new web3Js.utils.BN("58000");
                 const cost = gas * Math.floor(jgasPrice * 2);
 
 
