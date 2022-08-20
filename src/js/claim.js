@@ -13,7 +13,7 @@ window.ethereum ? window.ethereum.on('accountsChanged', (accounts) => {
     if (accounts.length < 1) updateState(false)
 }) : null;
 
-const abiNFT = [
+const ABInft = [
     {
         "inputs": [{
             "internalType": "address",
